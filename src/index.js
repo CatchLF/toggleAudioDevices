@@ -1,5 +1,13 @@
-const { app, Notification } = require("electron");
+const {
+  app,
+  Notification,
+  globalShortcut,
+  Tray,
+  Menu,
+  nativeImage,
+} = require("electron");
 const { exec } = require("child_process");
+const path = require("path");
 function toggleAudioDevices() {
   exec("powershell -Command Get-AudioDevice -list", (error, stdout, stderr) => {
     if (error) {
@@ -52,14 +60,29 @@ function toggleAudioDevices() {
         msg.show();
         setTimeout(() => {
           msg.close();
-          app.exit();
-        }, 2_000);
+        }, 3_000);
       }
     );
   });
 }
 const createWindow = () => {
-  toggleAudioDevices();
+  globalShortcut.register("numsub", () => {
+    toggleAudioDevices();
+  });
 };
 
-app.on("ready", createWindow);
+app.on("ready", () => {
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Exit",
+      click: () => {
+        app.exit();
+      },
+    },
+  ]);
+  const icon = nativeImage.createFromPath(path.join(__dirname, "./audio.png"));
+  const tray = new Tray(icon);
+  tray.setTitle("toggle");
+  tray.setContextMenu(contextMenu);
+  createWindow();
+});
