@@ -8,6 +8,7 @@ const {
 } = require("electron");
 const { exec } = require("child_process");
 const path = require("path");
+const config = require("./config.json");
 function toggleAudioDevices() {
   exec("powershell -Command Get-AudioDevice -list", (error, stdout, stderr) => {
     if (error) {
@@ -66,7 +67,9 @@ function toggleAudioDevices() {
   });
 }
 const createWindow = () => {
-  globalShortcut.register("numsub", () => {
+  const { shortcut = { Playback: "numsub" } } = config;
+  const { Playback = "numsub" } = shortcut;
+  globalShortcut.register(Playback, () => {
     toggleAudioDevices();
   });
 };
