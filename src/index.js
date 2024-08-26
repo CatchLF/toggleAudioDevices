@@ -75,7 +75,22 @@ const createWindow = () => {
 };
 
 app.on("ready", () => {
+  const { openAtLogin } = app.getLoginItemSettings();
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "开机自启动",
+      checked: openAtLogin,
+      click: (event) => {
+        const { checked } = event;
+        //如果设置开机自动启动
+        if (checked) {
+          app.setLoginItemSettings({ openAtLogin: true });
+        } else {
+          app.setLoginItemSettings();
+        }
+      },
+      type: "checkbox",
+    },
     {
       label: "Exit",
       click: () => {
