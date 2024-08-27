@@ -47,14 +47,14 @@
   }
 </style>
 <script>
-  const keylist = localStorage?.getItem('keyList')?.split('+')??[];
+  const input = document.querySelector(".input");
   const handleSave=()=>{
-    if(keylist.length==0){
+    const {value}=input;
+    if(`${value}`.length==0){
       alert('快捷键为空')
     }else{
-      const keys=keylist.join('+');
-      localStorage.setItem('keyList',keys);
-      window.electronAPI.registerGlobalShortcut(keys);
+      localStorage.setItem('keyList',value);
+      window.electronAPI.registerGlobalShortcut(value);
     }
   }
   const handleKeyDown = (event) => {
@@ -66,27 +66,12 @@
     }
     //判断退出键或者删除键
     if (["backspace", "escape"].some(s=>s==key?.toLowerCase())) {
-      keylist.length = 0;
-    } else {
-      //如果这个键没有输入，那么记录，如果输入过了，那么不管
-      if (!keylist.includes(key)) {
-        keylist.push(key);
-      }
+      target.value='';
     }
-    setTimeout(()=>{
-      target.value=keylist.join(' ')
-    },100)
-
   };
-  const input = document.querySelector(".input");
+
   input.addEventListener("keydown", handleKeyDown);
-  //如果有历史记录
-  if(keylist.length){
-    input.value=localStorage?.getItem('keyList');
-  }else{
-    keylist.push('numsub')
-    input.value='numsub'
-  }
+
   const saveBtn = document.querySelector(".saveBtn");
   saveBtn.addEventListener("click", handleSave);
   const closeBtn = document.querySelector(".closeBtn");
