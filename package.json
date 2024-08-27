@@ -7,9 +7,20 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make --platform='win32' --verbose",
+    "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\""
+  },
+  "forge": {
+    "packagerConfig": {},
+    "makers": [
+      {
+        "name": "@electron-forge/maker-squirrel",
+        "config": {
+          "autoUpdate": false
+        }
+      }
+    ]
   },
   "keywords": [],
   "author": {

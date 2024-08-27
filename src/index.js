@@ -7,6 +7,7 @@ const {
   nativeImage,
   BrowserWindow,
   ipcMain,
+  autoUpdater,
 } = require("electron");
 const { exec } = require("child_process");
 const path = require("path");
@@ -69,11 +70,61 @@ function toggleAudioDevices() {
     );
   });
 }
+const toggleRecord = () => {
+  exec(
+    "powershell -Command Set-AudioDevice -RecordingMuteToggle",
+    (error, stdout, stderr) => {
+      if (error) {
+        body = `${error.message}`;
+        const msg = new Notification({
+          title: "",
+          body,
+        });
+        msg.show();
+      } else if (stderr) {
+        body = stderr;
+        const msg = new Notification({
+          title: "",
+          body,
+        });
+        msg.show();
+      } else {
+        exec(
+          "powershell -Command Get-AudioDevice -RecordingMute",
+          (er, out, derr) => {
+            const allWindow = BrowserWindow.getAllWindows();
+            const window = allWindow?.find((f) => f.title == "record");
+            if (out.includes("True")) {
+              if (window) {
+                window.show();
+                return;
+              }
+              const win = new BrowserWindow({
+                width: 800,
+                height: 200,
+                frame: false,
+                backgroundColor: "rgba(255,21,21,0.8)",
+                title: "record",
+                alwaysOnTop: true,
+              });
+              win.setIgnoreMouseEvents(true);
+            } else {
+              window?.hide();
+            }
+          }
+        );
+      }
+    }
+  );
+};
 const registerGlobalShortcut = (key = "numsub") => {
   //去除所有快捷键
   globalShortcut.unregisterAll();
   globalShortcut.register(key, () => {
     toggleAudioDevices();
+  });
+  globalShortcut.register("nummult", () => {
+    toggleRecord();
   });
 };
 //创建设置快捷键窗口
@@ -139,7 +190,7 @@ app.on("ready", () => {
         if (checked) {
           app.setLoginItemSettings({ openAtLogin: true });
         } else {
-          app.setLoginItemSettings();
+          app.setLoginItemSettings({ openAtLogin: false });
         }
       },
       type: "checkbox",
