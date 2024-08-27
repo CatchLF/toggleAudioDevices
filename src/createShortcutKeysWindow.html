@@ -84,6 +84,7 @@
   if(keylist.length){
     input.value=localStorage?.getItem('keyList');
   }else{
+    keylist.push('numsub')
     input.value='numsub'
   }
   const saveBtn = document.querySelector(".saveBtn");
