@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>快捷键设置</title>
+  </head>
+  <body>
+   <div class="content">
+    <input class="input"></input>
+   </div>
+   <footer><button class="closeBtn">关闭</button>
+    <button class="saveBtn">保存</button></footer>
+  </body>
+</html>
+<style>
+  * {
+    padding: 0px;
+    margin: 0px;
+
+  }
+  .content{
+    text-align: center;
+    padding-top: 50px;
+    width: 100vw;
+  }
+  .input {
+    border: 1px;
+    width: 500px;
+    height: 50px;
+    background-color: rgba(15, 94, 178, 0.581);
+    font-size: 36px;
+    text-align: center;
+  }
+
+  footer{
+    position: fixed;
+    display: flex;
+    width: 100vw;
+    padding-top: 20px;
+    justify-content: center;
+  }
+  .closeBtn,.saveBtn{
+    font-size: 16px;
+    padding:5px 15px;
+    margin:0px 5px
+  }
+</style>
+<script>
+  const keylist = localStorage?.getItem('keyList')?.split('+')??[];
+  const handleSave=()=>{
+    if(keylist.length==0){
+      alert('快捷键为空')
+    }else{
+      const keys=keylist.join('+');
+      localStorage.setItem('keyList',keys);
+      window.electronAPI.registerGlobalShortcut(keys);
+    }
+  }
+  const handleKeyDown = (event) => {
+    const { key ,target} = event;
+    //如果按下回车键，自动保存
+    if(key?.toLowerCase()=='enter'){
+      handleSave();
+      return
+    }
+    //判断退出键或者删除键
+    if (["backspace", "escape"].some(s=>s==key?.toLowerCase())) {
+      keylist.length = 0;
+    } else {
+      //如果这个键没有输入，那么记录，如果输入过了，那么不管
+      if (!keylist.includes(key)) {
+        keylist.push(key);
+      }
+    }
+    setTimeout(()=>{
+      target.value=keylist.join(' ')
+    },100)
+
+  };
+  const input = document.querySelector(".input");
+  input.addEventListener("keydown", handleKeyDown);
+  //如果有历史记录
+  if(keylist.length){
+    input.value=localStorage?.getItem('keyList');
+  }else{
+    input.value='numsub'
+  }
+  const saveBtn = document.querySelector(".saveBtn");
+  saveBtn.addEventListener("click", handleSave);
+  const closeBtn = document.querySelector(".closeBtn");
+  closeBtn.addEventListener('click',()=>{
+    window.electronAPI.hideWindow()
+  })
+</script>

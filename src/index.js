@@ -5,10 +5,13 @@ const {
   Tray,
   Menu,
   nativeImage,
+  BrowserWindow,
+  ipcMain,
 } = require("electron");
 const { exec } = require("child_process");
 const path = require("path");
-const config = require("./config.json");
+const config = require("../config.json");
+const fs = require("fs");
 function toggleAudioDevices() {
   exec("powershell -Command Get-AudioDevice -list", (error, stdout, stderr) => {
     if (error) {
@@ -66,17 +69,67 @@ function toggleAudioDevices() {
     );
   });
 }
-const createWindow = () => {
-  const { shortcut = { Playback: "numsub" } } = config;
-  const { Playback = "numsub" } = shortcut;
-  globalShortcut.register(Playback, () => {
+const registerGlobalShortcut = (key = "numsub") => {
+  //去除所有快捷键
+  globalShortcut.unregisterAll();
+  globalShortcut.register(key, () => {
     toggleAudioDevices();
+  });
+};
+//创建设置快捷键窗口
+const createShortcutKeysWindow = () => {
+  //清空所有窗口
+  const allWindow = BrowserWindow.getAllWindows();
+  //如果一件创建了
+  const createdWindow = allWindow.find((f) => f.title == "快捷键设置");
+  if (createdWindow) {
+    createdWindow.show();
+    createdWindow.focus();
+    return;
+  }
+  //创建新的窗口
+  const win = new BrowserWindow({
+    width: 600,
+    height: 200,
+    title: "快捷键设置",
+    frame: false,
+    skipTaskbar: true, //不在任务栏展示
+    webPreferences: {
+      preload: path.join(__dirname, "./script/preload.js"),
+    },
+  });
+  win.loadFile(path.join(__dirname, "./createShortcutKeysWindow.html"));
+  //关闭当前窗口
+  ipcMain.on("register-global-shortcut", (event, message) => {
+    config.shortcut.Playback = message;
+    fs.writeFile("./config.json", JSON.stringify(config), (err) => {
+      if (err) {
+        const msg = new Notification({
+          title: "快捷键设置",
+          body: `设置失败${JSON.stringify(err)}`,
+        });
+        msg.show();
+      } else {
+        registerGlobalShortcut(message);
+        win.hide();
+      }
+    });
+  });
+  ipcMain.on("hide-window", () => {
+    win.hide();
   });
 };
 
 app.on("ready", () => {
   const { openAtLogin } = app.getLoginItemSettings();
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "设置快捷键",
+      checked: openAtLogin,
+      click: () => {
+        createShortcutKeysWindow();
+      },
+    },
     {
       label: "开机自启动",
       checked: openAtLogin,
@@ -102,5 +155,8 @@ app.on("ready", () => {
   const tray = new Tray(icon);
   tray.setTitle("toggle");
   tray.setContextMenu(contextMenu);
-  createWindow();
+  //设置快捷键
+  const { shortcut = { Playback: "numsub" } } = config;
+  const { Playback = "numsub" } = shortcut;
+  registerGlobalShortcut(Playback);
 });
