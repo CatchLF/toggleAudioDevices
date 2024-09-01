@@ -181,7 +181,6 @@ const createSettingWindow = () => {
     },
   });
   win.loadFile(path.join(__dirname, "./Setting.html"));
-  win.webContents.openDevTools();
   ipcMain.on("save", (event, message) => {
     //写入json文件
     Object.assign(config, message);
