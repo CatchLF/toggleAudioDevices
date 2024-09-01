@@ -7,13 +7,15 @@ const {
   nativeImage,
   BrowserWindow,
   ipcMain,
-  autoUpdater,
 } = require("electron");
 const { exec } = require("child_process");
 const path = require("path");
 const config = require("../config.json");
 const fs = require("fs");
-function toggleAudioDevices() {
+//获取播放设备列表
+const getAudioDeviceList = (
+  callBack = (PlaybackList = [], RecordingList = []) => {}
+) => {
   exec("powershell -Command Get-AudioDevice -list", (error, stdout, stderr) => {
     if (error) {
       console.error(`error: ${error.message}`);
@@ -38,15 +40,28 @@ function toggleAudioDevices() {
       }
     });
     const list = Object.keys(obj).map((k) => obj[k]);
+    const playbackList = list.filter((f) => f.Type == "Playback") ?? [];
+    const recordingList = list.filter((f) => f.Type == "Recording") ?? [];
 
-    //获取播放列表
-    const PlaybackList = list.filter((f) => f.Type == "Playback");
-    //获取麦克风列表
-    const RecordingList = list.filter((f) => f.Type == "Recording");
-
-    const playIndex = PlaybackList.findIndex((f) => f.Default == "True");
-    const playback = PlaybackList.at(playIndex + 1) ?? PlaybackList.at(0);
-
+    callBack(playbackList, recordingList);
+  });
+};
+//切换播放设备
+function toggleAudioDevices() {
+  getAudioDeviceList((PlaybackList) => {
+    const list = PlaybackList.filter(
+      //找到没被禁用的设备
+      (f) => !config.DisabledPlaybackList.some((s) => s === f.ID)
+    );
+    if (list.length == 0) {
+      new Notification({
+        title: "输出设备切换",
+        body: "没有输出设备",
+      }).show();
+      return;
+    }
+    const playIndex = list.findIndex((f) => f.Default == "True");
+    const playback = list.at(playIndex + 1) ?? PlaybackList.at(0);
     exec(
       `powershell -Command Set-AudioDevice ${playback?.Index}`,
       (error, stdout, stderr) => {
@@ -101,7 +116,7 @@ const toggleRecord = () => {
               }
               const win = new BrowserWindow({
                 width: 800,
-                height: 200,
+                height: 600,
                 frame: false,
                 backgroundColor: "rgba(255,21,21,0.8)",
                 title: "record",
@@ -128,40 +143,58 @@ const registerGlobalShortcut = (key = "numsub") => {
   });
 };
 //创建设置快捷键窗口
-const createShortcutKeysWindow = () => {
+const createSettingWindow = () => {
+  //进来的时候，更新播放设备列表
+  getAudioDeviceList((PlaybackList) => {
+    debugger;
+    Object.assign(config, { PlaybackList });
+    fs.writeFile("./config.json", JSON.stringify(config), (err) => {
+      if (err) {
+        const msg = new Notification({
+          title: "设置",
+          body: `获取设备信息失败${JSON.stringify(err)}`,
+        });
+        msg.show();
+      }
+    });
+  });
   //清空所有窗口
   const allWindow = BrowserWindow.getAllWindows();
   //如果一件创建了
   const createdWindow = allWindow.find((f) => f.title == "快捷键设置");
   if (createdWindow) {
+    createdWindow.reload();
     createdWindow.show();
     createdWindow.focus();
     return;
   }
+
   //创建新的窗口
   const win = new BrowserWindow({
-    width: 600,
-    height: 200,
-    title: "快捷键设置",
+    width: 800,
+    height: 600,
+    title: "设置",
     frame: false,
     skipTaskbar: true, //不在任务栏展示
     webPreferences: {
       preload: path.join(__dirname, "./script/preload.js"),
     },
   });
-  win.loadFile(path.join(__dirname, "./createShortcutKeysWindow.html"));
-  //关闭当前窗口
-  ipcMain.on("register-global-shortcut", (event, message) => {
-    config.shortcut.Playback = message;
+  win.loadFile(path.join(__dirname, "./Setting.html"));
+  win.webContents.openDevTools();
+  ipcMain.on("save", (event, message) => {
+    //写入json文件
+    Object.assign(config, message);
     fs.writeFile("./config.json", JSON.stringify(config), (err) => {
       if (err) {
         const msg = new Notification({
-          title: "快捷键设置",
+          title: "设置",
           body: `设置失败${JSON.stringify(err)}`,
         });
         msg.show();
       } else {
-        registerGlobalShortcut(message);
+        //设置快捷键
+        registerGlobalShortcut(config?.shortcut?.Playback ?? "numsub");
         win.hide();
       }
     });
@@ -175,10 +208,10 @@ app.on("ready", () => {
   const { openAtLogin } = app.getLoginItemSettings();
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: "设置快捷键",
+      label: "设置",
       checked: openAtLogin,
       click: () => {
-        createShortcutKeysWindow();
+        createSettingWindow();
       },
     },
     {
