@@ -8,4 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   hideWindow: () => {
     ipcRenderer.send("hide-window");
   },
+  changeVolume: (message) => {
+    ipcRenderer.send("change-volume", message);
+  },
 });

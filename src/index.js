@@ -47,7 +47,7 @@ const getAudioDeviceList = (
   });
 };
 //切换播放设备
-function toggleAudioDevices() {
+const toggleAudioDevices = () => {
   getAudioDeviceList((PlaybackList) => {
     const list = PlaybackList.filter(
       //找到没被禁用的设备
@@ -73,6 +73,9 @@ function toggleAudioDevices() {
         } else {
           body = `切换成功，当前播放设备${playback?.Name}`;
         }
+        const find = config.PlaybackVolumeList.find((f) => f.ID == playback.ID);
+        const { volume } = find;
+        setPlaybackVolume(`${volume ?? config.defaultVolume}`.replace("%", ""));
         const msg = new Notification({
           title: "输出设备切换",
           body,
@@ -84,25 +87,59 @@ function toggleAudioDevices() {
       }
     );
   });
-}
+};
+//获取当前播放音量
+const getPlaybackVolume = (callback) => {
+  exec(
+    `powershell -Command Get-AudioDevice -PlaybackVolume`,
+    (error, stdout, stderr) => {
+      if (error) {
+        new Notification({
+          body: `${error.message}`,
+        }).show();
+      } else if (stderr) {
+        new Notification({
+          body: stderr,
+        }).show();
+      } else {
+        callback(stdout.replace(/\r|\n/g, "").replace("%", ""));
+      }
+    }
+  );
+};
+//设置当前播放音量
+const setPlaybackVolume = (volume = "100") => {
+  exec(
+    `powershell -Command Set-AudioDevice -PlaybackVolume ${volume}`,
+    (error, stdout, stderr) => {
+      if (error) {
+        new Notification({
+          body: `${error.message}`,
+        }).show();
+      } else if (stderr) {
+        new Notification({
+          body: stderr,
+        }).show();
+      } else {
+        new Notification({
+          body: `当前音量${volume}`,
+        }).show();
+      }
+    }
+  );
+};
 const toggleRecord = () => {
   exec(
     "powershell -Command Set-AudioDevice -RecordingMuteToggle",
     (error, stdout, stderr) => {
       if (error) {
-        body = `${error.message}`;
-        const msg = new Notification({
-          title: "",
-          body,
-        });
-        msg.show();
+        new Notification({
+          body: `${error.message}`,
+        }).show();
       } else if (stderr) {
-        body = stderr;
-        const msg = new Notification({
-          title: "",
-          body,
-        });
-        msg.show();
+        new Notification({
+          body: stderr,
+        }).show();
       } else {
         exec(
           "powershell -Command Get-AudioDevice -RecordingMute",
@@ -144,20 +181,23 @@ const registerGlobalShortcut = (key = "numsub") => {
 };
 //创建设置快捷键窗口
 const createSettingWindow = () => {
-  //进来的时候，更新播放设备列表
-  getAudioDeviceList((PlaybackList) => {
-    debugger;
-    Object.assign(config, { PlaybackList });
-    fs.writeFile("./config.json", JSON.stringify(config), (err) => {
-      if (err) {
-        const msg = new Notification({
-          title: "设置",
-          body: `获取设备信息失败${JSON.stringify(err)}`,
-        });
-        msg.show();
-      }
+  //获取当前播放音量
+  getPlaybackVolume((volume) => {
+    //进来的时候，更新播放设备列表
+    getAudioDeviceList((PlaybackList) => {
+      Object.assign(config, { PlaybackList, defaultVolume: volume });
+      fs.writeFile("./config.json", JSON.stringify(config), (err) => {
+        if (err) {
+          const msg = new Notification({
+            title: "设置",
+            body: `获取设备信息失败${JSON.stringify(err)}`,
+          });
+          msg.show();
+        }
+      });
     });
   });
+
   //清空所有窗口
   const allWindow = BrowserWindow.getAllWindows();
   //如果一件创建了
@@ -197,6 +237,11 @@ const createSettingWindow = () => {
         win.hide();
       }
     });
+  });
+  ipcMain.on("change-volume", (event, message) => {
+    const { volume } = message;
+    //设置当前播放音量
+    setPlaybackVolume(`${volume}`.replace("%", ""));
   });
   ipcMain.on("hide-window", () => {
     win.hide();

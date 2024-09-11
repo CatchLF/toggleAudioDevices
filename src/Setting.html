@@ -6,12 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>快捷键设置</title>
 </head>
-
 <body>
   <div class="content">
     <h3>设备列表(选择要禁用的设备)</h3>
     <div class="playbackListContent">
-
     </div>
     <div>切换声音快捷键</div>
     <input class="input" placeholder="请输入快捷键"></input>
@@ -67,86 +65,4 @@
     -webkit-app-region: no-drag;
   }
 </style>
-<script>
-  const input = document.querySelector(".input");
-  const handleSave = () => {
-    const {
-      value
-    } = input;
-    if (`${value}`.length == 0) {
-      alert('快捷键为空')
-    } else {
-
-    const checkboxList=document.querySelectorAll('.playback');
-    const DisabledPlaybackList=[];
-    checkboxList?.forEach(ck=>{
-      const {checked,value}=ck;
-      if(checked){
-        DisabledPlaybackList.push(value);
-      }
-    });
-      window.electronAPI.save({
-        DisabledPlaybackList,
-        shortcut:{
-          Playback:value
-        }
-      });
-    }
-  }
-  const handleKeyDown = (event) => {
-    const {
-      key,
-      target
-    } = event;
-    //如果按下回车键，自动保存
-    if (key?.toLowerCase() == 'enter') {
-      handleSave();
-      return
-    }
-  };
-
-  input.addEventListener("keydown", handleKeyDown);
-
-  const saveBtn = document.querySelector(".saveBtn");
-  saveBtn.addEventListener("click", handleSave);
-  const closeBtn = document.querySelector(".closeBtn");
-  closeBtn.addEventListener('click', () => {
-    window.electronAPI.hideWindow()
-  })
-
-  fetch('../config.json').then(res => {
-    res.json().then(params => {
-      const {
-        shortcut = {
-          Playback: "numsub"
-        },
-        DisabledPlaybackList=[],
-        PlaybackList=[]
-      } = params;
-      const {
-        Playback
-      } = shortcut;
-      input.value = Playback;
-      const playbackListContent = document.querySelector('.playbackListContent');
-      PlaybackList.forEach(playback => {
-        let {
-          ID,
-          Name,
-        } = playback;
-        const regex = /\((.*?)\)/;
-        const result = Name.match(regex);
-
-        if (result && result.length > 1) {
-          Name=result[1]
-        }
-        const input =
-            `<label for="${ID}">${Name}</label><input type="checkbox" class="playback" value="${ID}" style="margin-left:5px;"></input>`;
-          const div = document.createElement('div');
-          div.innerHTML = input;
-          div.style='font-size:22px;padding-bottom:5px'
-          div.querySelector('.playback').checked=DisabledPlaybackList.some(s=>s===ID);
-          playbackListContent.appendChild(div);
-      })
-    })
-  })
-</script>
+<script src="./script/setting.js"></script>
