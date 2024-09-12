@@ -1,100 +1,87 @@
 const input = document.querySelector(".input");
+const saveBtn = document.querySelector(".saveBtn");
+const closeBtn = document.querySelector(".closeBtn");
+const playbackListContent = document.querySelector(".playbackListContent");
+
+// 保存设置
 const handleSave = () => {
-  const { value } = input;
-  if (`${value}`.length == 0) {
-    alert("快捷键为空");
-  } else {
-    const checkboxList = document.querySelectorAll(".playback");
-    const DisabledPlaybackList = [];
-    checkboxList?.forEach((ck) => {
-      const { checked, value } = ck;
-      if (checked) {
-        DisabledPlaybackList.push(value);
-      }
-    });
-    const volumeList = document.querySelectorAll(".playId");
-    const PlaybackVolumeList = [];
-    volumeList.forEach((el) => {
-      const { value } = el;
-      const playId = el.getAttribute("playId");
-      const val = { ID: playId, volume: value };
-      PlaybackVolumeList.push(val);
-    });
-    window.electronAPI.save({
-      DisabledPlaybackList,
-      PlaybackVolumeList,
-      shortcut: {
-        Playback: value,
-      },
-    });
-  }
-};
-const handleKeyDown = (event) => {
-  const { key, target } = event;
-  //如果按下回车键，自动保存
-  if (key?.toLowerCase() == "enter") {
-    handleSave();
+  const shortcutValue = input.value.trim();
+  if (shortcutValue.length === 0) {
+    alert("快捷键不能为空");
     return;
   }
+
+  const DisabledPlaybackList = Array.from(document.querySelectorAll(".playback:checked"))
+    .map(checkbox => checkbox.value);
+
+  const PlaybackVolumeList = Array.from(document.querySelectorAll(".playId"))
+    .map(el => ({ ID: el.getAttribute("playId"), volume: el.value }));
+
+  window.electronAPI.save({
+    DisabledPlaybackList,
+    PlaybackVolumeList,
+    shortcut: { Playback: shortcutValue },
+  });
 };
 
-input.addEventListener("keydown", handleKeyDown);
+// 处理键盘事件
+const handleKeyDown = (event) => {
+  if (event.key.toLowerCase() === "enter") {
+    handleSave();
+  }
+};
 
-const saveBtn = document.querySelector(".saveBtn");
-saveBtn.addEventListener("click", handleSave);
-const closeBtn = document.querySelector(".closeBtn");
-closeBtn.addEventListener("click", () => {
-  window.electronAPI.hideWindow();
-});
+// 处理音量变化
 const handleChangeVolume = (el) => {
   const { value } = el;
   const playId = el.getAttribute("playId");
-  const val = { ID: playId, volume: value };
-  //切换音量
-  window.electronAPI.changeVolume(val);
+  window.electronAPI.changeVolume({ ID: playId, volume: value });
 };
-fetch("../config.json").then((res) => {
-  res.json().then((params) => {
-    const {
-      shortcut = {
-        Playback: "numsub",
-      },
-      //播放设备禁用状态缓存
-      DisabledPlaybackList = [],
-      //当前播放设备
-      PlaybackList = [],
-      //播放设备音量缓存
-      PlaybackVolumeList = [],
-      //当前设备播放音量
-      defaultVolume = "100%",
-    } = params;
-    const { Playback } = shortcut;
-    input.value = Playback;
-    const playbackListContent = document.querySelector(".playbackListContent");
-    //获取音量
-    const getVolume = (ID) => {
-      return `${
-        PlaybackVolumeList.find((f) => f.ID == ID)?.volume ?? defaultVolume
-      }`.replace("%", "");
-    };
-    PlaybackList.forEach((playback) => {
-      let { ID, Name } = playback;
-      const regex = /\((.*?)\)/;
-      const result = Name.match(regex);
 
-      if (result && result.length > 1) {
-        Name = result[1];
-      }
-      const input = `<label for="${ID}">${Name}</label> <input type="checkbox" class="playback" value="${ID}" style="margin-left:5px;"></input><br/>播放音量：<input onChange="handleChangeVolume(this)" type="range" max="100" min="0" class="playId" playId=${ID} value="${getVolume(
-        ID
-      )}"/>`;
-      const div = document.createElement("div");
-      div.innerHTML = input;
-      div.style = "font-size:22px;padding-bottom:5px";
-      div.querySelector(".playback").checked = DisabledPlaybackList.some(
-        (s) => s === ID
-      );
-      playbackListContent.appendChild(div);
+// 初始化设置界面
+const initializeSettings = async () => {
+  try {
+    const config = await fetch("../config.json").then(res => res.json());
+    const {
+      shortcut = { Playback: "numsub" },
+      DisabledPlaybackList = [],
+      PlaybackList = [],
+      PlaybackVolumeList = [],
+      defaultVolume = "100%",
+    } = config;
+
+    input.value = shortcut.Playback;
+
+    PlaybackList.forEach(playback => {
+      const { ID, Name } = playback;
+      const displayName = Name.match(/\((.*?)\)/)?.[1] || Name;
+      const volume = PlaybackVolumeList.find(v => v.ID === ID)?.volume || defaultVolume;
+
+      const deviceElement = createDeviceElement(ID, displayName, volume, DisabledPlaybackList.includes(ID));
+      playbackListContent.appendChild(deviceElement);
     });
-  });
-});
+  } catch (error) {
+    console.error("加载设置失败:", error);
+    alert("加载设置失败，请检查控制台日志");
+  }
+};
+
+// 创建设备元素
+const createDeviceElement = (id, name, volume, isDisabled) => {
+  const div = document.createElement("div");
+  div.style = "font-size:22px;padding-bottom:5px";
+  div.innerHTML = `
+    <label for="${id}">${name}</label>
+    <input type="checkbox" class="playback" value="${id}" ${isDisabled ? 'checked' : ''} style="margin-left:5px;">
+    <br/>播放音量：<input type="range" max="100" min="0" class="playId" playId="${id}" value="${volume.replace('%', '')}" onchange="handleChangeVolume(this)">
+  `;
+  return div;
+};
+
+// 事件监听
+input.addEventListener("keydown", handleKeyDown);
+saveBtn.addEventListener("click", handleSave);
+closeBtn.addEventListener("click", () => window.electronAPI.hideWindow());
+
+// 初始化
+initializeSettings();
