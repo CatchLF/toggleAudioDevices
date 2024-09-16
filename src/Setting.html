@@ -16,34 +16,50 @@
         <!-- 设备列表将由JavaScript动态生成 -->
       </div>
 
-      <div class="mt-8 text-center space-x-4">
-        <div class="flex flex-col items-start">
-          <!-- 改为 items-start 以便左对齐标签 -->
-          <label
-            for="shortcutInput"
-            class="mb-1 text-sm font-medium text-gray-600"
-            >切换声音快捷键</label
-          >
-          <input
-            id="shortcutInput"
-            type="text"
-            placeholder="设置快捷键"
-            class="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-center font-mono text-lg w-48 cursor-pointer"
-          />
-        </div>
+      <div class="mt-4 text-center space-x-4">
+        <div class="flex space-x-4">
+          <div>
+            <label
+              for="shortcutInput"
+              class="mb-1 text-sm font-medium text-gray-600 block"
+              >切换声音快捷键</label
+            >
+            <input
+              id="shortcutInput"
+              type="text"
+              placeholder="设置快捷键"
+              class="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-center font-mono text-lg w-48 cursor-pointer"
+            />
+          </div>
 
-        <button
-          id="closeBtn"
-          class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-300"
-        >
-          关闭
-        </button>
-        <button
-          id="saveBtn"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300"
-        >
-          保存设置
-        </button>
+          <div>
+            <label
+              for="toggleMicShortcutInput"
+              class="mb-1 text-sm font-medium text-gray-600 block"
+              >切换麦克风状态快捷键</label
+            >
+            <input
+              id="toggleMicShortcutInput"
+              type="text"
+              placeholder="设置快捷键"
+              class="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-center font-mono text-lg w-48 cursor-pointer"
+            />
+          </div>
+        </div>
+        <div class="mt-6">
+          <button
+            id="closeBtn"
+            class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition duration-300 mr-6"
+          >
+            关闭
+          </button>
+          <button
+            id="saveBtn"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-300 mr-6"
+          >
+            保存设置
+          </button>
+        </div>
       </div>
     </div>
     <script src="./script/setting.js"></script>

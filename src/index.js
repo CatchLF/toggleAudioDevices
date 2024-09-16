@@ -112,9 +112,10 @@ const toggleRecord = async () => {
           width: 800,
           height: 600,
           frame: false,
-          backgroundColor: "rgba(255,21,21,0.8)",
+          backgroundColor: "rgba(255,21,21,0.3)",
           title: "record",
           alwaysOnTop: true,
+          transparent: true,
         });
         win.setIgnoreMouseEvents(true);
       }
@@ -126,10 +127,17 @@ const toggleRecord = async () => {
   }
 };
 
-const registerGlobalShortcut = (key = "numsub") => {
+const registerGlobalShortcut = (
+  playbackKey = "numsub",
+  toggleRecordKey = "nummult"
+) => {
   globalShortcut.unregisterAll();
-  globalShortcut.register(key, toggleAudioDevices);
-  globalShortcut.register("nummult", toggleRecord);
+  if (playbackKey.length) {
+    globalShortcut.register(playbackKey, toggleAudioDevices);
+  }
+  if (toggleRecordKey.length) {
+    globalShortcut.register(toggleRecordKey, toggleRecord);
+  }
 };
 
 const createSettingWindow = async () => {
@@ -170,7 +178,10 @@ const createSettingWindow = async () => {
       try {
         Object.assign(config, message);
         await fs.writeFile("./config.json", JSON.stringify(config));
-        registerGlobalShortcut(config?.shortcut?.Playback ?? "numsub");
+        registerGlobalShortcut(
+          config?.shortcut?.Playback ?? "numsub",
+          config?.shortcut?.ToggleMic ?? "nummult"
+        );
         win.hide();
         showNotification("设置", "设置保存成功");
       } catch (error) {
@@ -224,6 +235,6 @@ app.on("ready", () => {
   tray.setTitle("toggle");
   tray.setContextMenu(contextMenu);
 
-  const { shortcut = { Playback: "numsub" } } = config;
-  registerGlobalShortcut(shortcut.Playback);
+  const { shortcut = { Playback: "numsub", ToggleMic: "nummult" } } = config;
+  registerGlobalShortcut(shortcut.Playback, shortcut.ToggleMic);
 });

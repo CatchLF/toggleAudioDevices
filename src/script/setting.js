@@ -4,14 +4,14 @@ const input = document.querySelector("#shortcutInput");
 const saveBtn = document.querySelector("#saveBtn");
 const closeBtn = document.querySelector("#closeBtn");
 const playbackListContent = document.querySelector("#deviceList");
+const toggleMicShortcutInput = document.querySelector(
+  "#toggleMicShortcutInput"
+);
 
 // 保存设置
 const handleSave = () => {
   const shortcutValue = input.value.trim();
-  if (shortcutValue.length === 0) {
-    alert("快捷键不能为空");
-    return;
-  }
+  const toggleMicShortcutValue = toggleMicShortcutInput.value.trim();
 
   const DisabledPlaybackList = Array.from(
     document.querySelectorAll(".device-toggle:not(:checked)")
@@ -23,12 +23,18 @@ const handleSave = () => {
   console.log({
     DisabledPlaybackList,
     PlaybackVolumeList,
-    shortcut: { Playback: shortcutValue },
+    shortcut: {
+      Playback: shortcutValue,
+      ToggleMic: toggleMicShortcutValue,
+    },
   });
   window.electronAPI.save({
     DisabledPlaybackList,
     PlaybackVolumeList,
-    shortcut: { Playback: shortcutValue },
+    shortcut: {
+      Playback: shortcutValue,
+      ToggleMic: toggleMicShortcutValue,
+    },
   });
 };
 
@@ -44,7 +50,7 @@ const handleChangeVolume = (el) => {
   const { value } = el;
   const playId = el.getAttribute("data-id");
   // 更新显示的音量值
-  const volumeDisplay = el.parentElement.querySelector('.volume-display');
+  const volumeDisplay = el.parentElement.querySelector(".volume-display");
   if (volumeDisplay) {
     volumeDisplay.textContent = `${value}`;
   }
@@ -56,7 +62,7 @@ const initializeSettings = async () => {
   try {
     const config = await fetch("../config.json").then((res) => res.json());
     const {
-      shortcut = { Playback: "numsub" },
+      shortcut = { Playback: "numsub", ToggleMic: "nummult" },
       DisabledPlaybackList = [],
       PlaybackList = [],
       PlaybackVolumeList = [],
@@ -64,6 +70,7 @@ const initializeSettings = async () => {
     } = config;
 
     input.value = shortcut.Playback;
+    toggleMicShortcutInput.value = shortcut.ToggleMic;
 
     PlaybackList.forEach((playback) => {
       const { ID, Name } = playback;
@@ -116,6 +123,7 @@ const createDeviceElement = (id, name, volume, isDisabled) => {
 input.addEventListener("keydown", handleKeyDown);
 saveBtn.addEventListener("click", handleSave);
 closeBtn.addEventListener("click", () => window.electronAPI.hideWindow());
+toggleMicShortcutInput.addEventListener("keydown", handleKeyDown);
 
 // 初始化
 initializeSettings();
