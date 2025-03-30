@@ -7,6 +7,7 @@ const {
   nativeImage,
   BrowserWindow,
   ipcMain,
+  screen,
 } = require("electron");
 const { promisify } = require("util");
 const execAsync = promisify(require("child_process").exec);
@@ -14,7 +15,6 @@ const path = require("path");
 const fs = require("fs").promises;
 const config = require("../config.json");
 
-// Helper functions
 const showNotification = (title, body, timeout = 3000) => {
   new Notification({ title, body }).show();
 };
@@ -48,7 +48,7 @@ const getAudioDeviceList = async () => {
   }
 };
 
-const toggleAudioDevices = async () => {
+const toggleAudioDevices = async (audioID = null) => {
   try {
     const { playbackList } = await getAudioDeviceList();
     const availableDevices = playbackList.filter(
@@ -62,19 +62,21 @@ const toggleAudioDevices = async () => {
     const currentIndex = availableDevices.findIndex(
       (d) => d.Default === "True"
     );
-    const nextDevice =
-      availableDevices[(currentIndex + 1) % availableDevices.length];
+    //如果相等，那么就不做处理
+    if (currentIndex == availableDevices.findIndex((f) => f.ID == audioID)) {
+      return;
+    }
+
+    const nextDevice = audioID
+      ? availableDevices.find((f) => f.ID == audioID)
+      : availableDevices[(currentIndex + 1) % availableDevices.length];
 
     await execAsync(`powershell -Command Set-AudioDevice ${nextDevice.Index}`);
     showNotification(
       "输出设备切换",
       `切换成功，当前播放设备${nextDevice.Name}`
     );
-    const volumeConfig = config.PlaybackVolumeList.find(
-      (v) => v.ID === nextDevice.ID
-    );
-    const volume = volumeConfig ? volumeConfig.volume : config.defaultVolume;
-    await setPlaybackVolume(volume.replace("%", ""));
+    // await setPlaybackVolume(volume.replace("%", ""));
   } catch (error) {
     showNotification("输出设备切换", `切换失败: ${error.message}`);
   }
@@ -152,7 +154,7 @@ const createSettingWindow = async () => {
     await fs.writeFile("./config.json", JSON.stringify(config));
 
     const allWindows = BrowserWindow.getAllWindows();
-    const existingWindow = allWindows.find((w) => w.title === "快捷键设置");
+    const existingWindow = allWindows.find((w) => w.title === "音频设备管理");
 
     if (existingWindow) {
       existingWindow.reload();
@@ -160,11 +162,12 @@ const createSettingWindow = async () => {
       existingWindow.focus();
       return;
     }
-
+    const width = 600;
+    const height = 800;
     const win = new BrowserWindow({
-      width: 800,
-      height: 600,
-      title: "设置",
+      width,
+      height,
+      title: "音频设备管理",
       frame: false,
       skipTaskbar: true,
       webPreferences: {
@@ -173,7 +176,20 @@ const createSettingWindow = async () => {
     });
 
     win.loadFile(path.join(__dirname, "./Setting.html"));
+    // 获取屏幕工作区大小
+    const { width: screenWidth, height: screenHeight } =
+      screen.getPrimaryDisplay().workAreaSize;
 
+    // 设置窗口位置到右下角
+    win.setBounds({
+      x: screenWidth - width, // 屏幕宽度减去窗口宽度
+      y: screenHeight - height, // 屏幕高度减去窗口高度
+      width,
+      height,
+    });
+    ipcMain.on("toggle-playback-device", async (event, message) => {
+      await toggleAudioDevices(message);
+    });
     ipcMain.on("save", async (event, message) => {
       try {
         Object.assign(config, message);
@@ -237,4 +253,5 @@ app.on("ready", () => {
 
   const { shortcut = { Playback: "numsub", ToggleMic: "nummult" } } = config;
   registerGlobalShortcut(shortcut.Playback, shortcut.ToggleMic);
+  createSettingWindow();
 });

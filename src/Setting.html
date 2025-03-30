@@ -12,6 +12,34 @@
         音频设备管理
       </h1>
 
+      <!-- 添加音量调整滑块 -->
+      <div class="mt-6">
+        <label
+          for="volumeControl"
+          class="mb-1 text-sm font-medium text-gray-600 block"
+          >当前音量</label
+        >
+        <div class="flex items-center space-x-4">
+          <input
+            id="volumeControl"
+            type="range"
+            min="0"
+            max="100"
+            value=""
+            type="range"
+            max="100"
+            min="0"
+            class="device-volume w-full"
+          />
+          <span
+            id="volumeValue"
+            class="text-sm font-medium text-gray-700 w-12 text-center"
+          >
+          </span>
+        </div>
+      </div>
+
+      <div class="mt-6">播放设备</div>
       <div id="deviceList" class="space-y-4">
         <!-- 设备列表将由JavaScript动态生成 -->
       </div>
@@ -73,5 +101,8 @@
   button,
   input {
     -webkit-app-region: no-drag;
+  }
+  .audio-device {
+    cursor: pointer;
   }
 </style>

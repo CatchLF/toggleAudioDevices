@@ -11,4 +11,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   changeVolume: (message) => {
     ipcRenderer.send("change-volume", message);
   },
+  togglePlaybackDevice: (message) => {
+    ipcRenderer.send("toggle-playback-device", message);
+  },
 });
