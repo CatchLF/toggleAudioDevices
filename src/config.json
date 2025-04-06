@@ -1,0 +1,7 @@
+{
+  "shortcut": { "Playback": "numsub", "ToggleMic": "nummult" },
+  "DisabledPlaybackList": [],
+  "defaultVolume": "50",
+  "PlaybackVolumeList": [],
+  "PlaybackList": []
+}

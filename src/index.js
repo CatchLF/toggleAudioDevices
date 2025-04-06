@@ -13,7 +13,7 @@ const { promisify } = require("util");
 const execAsync = promisify(require("child_process").exec);
 const path = require("path");
 const fs = require("fs").promises;
-const config = require("../config.json");
+const config = require("./config.json");
 
 const showNotification = (title, body, timeout = 3000) => {
   new Notification({ title, body }).show();
